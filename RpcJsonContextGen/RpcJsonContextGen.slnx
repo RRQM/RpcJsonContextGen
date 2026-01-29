@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/.solutions/">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Project Path="RpcJsonContextGen/RpcJsonContextGen.csproj" />
+</Solution>
