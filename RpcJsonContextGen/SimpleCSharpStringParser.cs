@@ -29,53 +29,6 @@ public static class SimpleCSharpStringParser
 
     public static List<TypeInfo> ParsePublicTypes(string src) => ParseFile(src).Types;
 
-    public static IEnumerable<string> CollectMethodTypes(IEnumerable<TypeInfo> types)
-    {
-        foreach (var t in types)
-        {
-            foreach (var m in t.Methods)
-            {
-                if (!string.IsNullOrWhiteSpace(m.ReturnType))
-                    yield return NormalizeTypeForJsonSerializable(m.ReturnType);
-
-                foreach (var p in m.Parameters)
-                {
-                    if (!string.IsNullOrWhiteSpace(p.Type))
-                        yield return NormalizeTypeForJsonSerializable(p.Type);
-                }
-            }
-        }
-    }
-
-    public static string GenerateJsonSerializableAttributes(IEnumerable<string> distinctTypes)
-    {
-        var list = distinctTypes
-            .Select(NormalizeTypeForJsonSerializable)
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Distinct(StringComparer.Ordinal)
-            .OrderBy(t => t, StringComparer.Ordinal)
-            .ToList();
-
-        return string.Join(Environment.NewLine, list.Select(t => $"[JsonSerializable(typeof({t}))]"));
-    }
-
-    private static string NormalizeTypeForJsonSerializable(string type)
-    {
-        type = type.Trim();
-        if (type.Length == 0) return type;
-
-        // Drop Nullable marker
-        if (type.Contains('?')) type = type.Replace("?", string.Empty);
-
-        // Remove common namespace qualifiers to reduce duplicates.
-        type = type.Replace("global::", string.Empty);
-        type = type.Replace("System.", string.Empty);
-
-        // Collapse whitespace.
-        type = string.Join(" ", SplitByWhitespaceTopLevel(type));
-        return type;
-    }
-
     private static List<TypeInfo> ParsePublicTypesFromSanitized(string src)
     {
         var types = new List<TypeInfo>();

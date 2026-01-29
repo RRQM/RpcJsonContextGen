@@ -2,5 +2,6 @@
   <Folder Name="/.solutions/">
     <File Path="Directory.Build.props" />
   </Folder>
+  <Project Path="RpcJsonContextGen.Tests/RpcJsonContextGen.Tests.csproj" Id="e693699a-f0eb-4703-926e-cb3108b72302" />
   <Project Path="RpcJsonContextGen/RpcJsonContextGen.csproj" />
 </Solution>
