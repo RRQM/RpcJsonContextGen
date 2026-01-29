@@ -8,6 +8,9 @@ on:
     paths:
       - 'Directory.Build.props'
 
+permissions:
+  contents: write
+
 jobs:
   check-version:
     runs-on: ubuntu-latest
@@ -50,28 +53,19 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
 
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Build Windows x64
-        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/win-x64
+      - name: Build Windows x64 (AOT)
+        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r win-x64 -o ./publish/win-x64
 
-      - name: Build Windows x86
-        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r win-x86 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/win-x86
+      - name: Build Windows x86 (AOT)
+        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r win-x86 -o ./publish/win-x86
 
-      - name: Build Windows ARM64
-        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r win-arm64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/win-arm64
-
-      - name: Build Linux x64
-        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/linux-x64
-
-      - name: Build macOS x64
-        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r osx-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/osx-x64
-
-      - name: Build macOS ARM64
-        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r osx-arm64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o ./publish/osx-arm64
+      - name: Build Windows ARM64 (AOT)
+        run: dotnet publish RpcJsonContextGen/RpcJsonContextGen.csproj -c Release -r win-arm64 -o ./publish/win-arm64
 
       - name: Create Release Archive
         run: |
@@ -79,12 +73,9 @@ jobs:
           Compress-Archive -Path win-x64/RpcJsonContextGen.exe -DestinationPath RpcJsonContextGen-win-x64.zip
           Compress-Archive -Path win-x86/RpcJsonContextGen.exe -DestinationPath RpcJsonContextGen-win-x86.zip
           Compress-Archive -Path win-arm64/RpcJsonContextGen.exe -DestinationPath RpcJsonContextGen-win-arm64.zip
-          Compress-Archive -Path linux-x64/RpcJsonContextGen -DestinationPath RpcJsonContextGen-linux-x64.zip
-          Compress-Archive -Path osx-x64/RpcJsonContextGen -DestinationPath RpcJsonContextGen-osx-x64.zip
-          Compress-Archive -Path osx-arm64/RpcJsonContextGen -DestinationPath RpcJsonContextGen-osx-arm64.zip
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ needs.check-version.outputs.version }}
           name: Release v${{ needs.check-version.outputs.version }}
@@ -95,14 +86,11 @@ jobs:
           body: |
             ## RpcJsonContextGen v${{ needs.check-version.outputs.version }}
             
-            ### 下载说明
+            ### 下载说明 (AOT编译版本)
             - Windows x64: `RpcJsonContextGen-win-x64.zip`
             - Windows x86: `RpcJsonContextGen-win-x86.zip`
             - Windows ARM64: `RpcJsonContextGen-win-arm64.zip`
-            - Linux x64: `RpcJsonContextGen-linux-x64.zip`
-            - macOS x64 (Intel): `RpcJsonContextGen-osx-x64.zip`
-            - macOS ARM64 (Apple Silicon): `RpcJsonContextGen-osx-arm64.zip`
             
-            下载后解压即可使用。
+            本版本使用Native AOT编译，无需安装.NET运行时，下载后解压即可直接运行。
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
