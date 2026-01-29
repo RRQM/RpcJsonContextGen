@@ -14,6 +14,61 @@ namespace RpcJsonContextGen;
 
 public static class RpcJsonContextGenerator
 {
+    /// <summary>
+    /// 不需要生成 JsonSerializable 的类型列表
+    /// </summary>
+    private static readonly string[] s_excludedTypes = 
+    [
+        // 空类型和异步类型（非泛型）
+        "void",
+        "Void",
+        "Task",
+        "ValueTask",
+        "Threading.Tasks.Task",
+        "Threading.Tasks.ValueTask",
+        
+        // 基本数据类型（小写关键字）
+        "bool",
+        "byte",
+        "sbyte",
+        "char",
+        "decimal",
+        "double",
+        "float",
+        "int",
+        "uint",
+        "long",
+        "ulong",
+        "short",
+        "ushort",
+        "string",
+        "object",
+        
+        // 基本数据类型（大写类型名）
+        "Boolean",
+        "Byte",
+        "SByte",
+        "Char",
+        "Decimal",
+        "Double",
+        "Single",
+        "Int32",
+        "UInt32",
+        "Int64",
+        "UInt64",
+        "Int16",
+        "UInt16",
+        "String",
+        "Object",
+        
+        // 常用的内置类型
+        "DateTime",
+        "DateTimeOffset",
+        "TimeSpan",
+        "Guid",
+        "Uri"
+    ];
+
     public static string? GenerateFromFiles(IEnumerable<string> filePaths)
     {
         var typeSet = new HashSet<string>(StringComparer.Ordinal);
@@ -78,11 +133,33 @@ public static class RpcJsonContextGenerator
         var list = distinctTypes
             .Select(NormalizeTypeForJsonSerializable)
             .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Where(t => !s_excludedTypes.Contains(t, StringComparer.Ordinal))
+            .Where(t => !IsCallContextType(t))
             .Distinct(StringComparer.Ordinal)
             .OrderBy(t => t, StringComparer.Ordinal)
             .ToList();
 
         return string.Join(Environment.NewLine, list.Select(t => $"[JsonSerializable(typeof({t}))]"));
+    }
+    
+    private static bool IsCallContextType(string type)
+    {
+        // 提取类型名称（去除泛型参数）
+        var typeName = type;
+        var genericIndex = typeName.IndexOf('<');
+        if (genericIndex > 0)
+        {
+            typeName = typeName.Substring(0, genericIndex);
+        }
+        
+        // 去除命名空间，只检查类型名称
+        var lastDotIndex = typeName.LastIndexOf('.');
+        if (lastDotIndex >= 0)
+        {
+            typeName = typeName.Substring(lastDotIndex + 1);
+        }
+        
+        return typeName.EndsWith("CallContext", StringComparison.Ordinal);
     }
 
     private static string NormalizeTypeForJsonSerializable(string type)

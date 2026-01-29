@@ -487,19 +487,19 @@ public class MyClass
     [Fact]
     public void GenerateJsonSerializableAttributes_ShouldGenerateAttributes()
     {
-        var types = new[] { "string", "int", "bool" };
+        var types = new[] { "UserDto", "ProductDto", "OrderDto" };
 
         var result = RpcJsonContextGenerator.GenerateJsonSerializableAttributes(types);
 
-        Assert.Contains("[JsonSerializable(typeof(bool))]", result);
-        Assert.Contains("[JsonSerializable(typeof(int))]", result);
-        Assert.Contains("[JsonSerializable(typeof(string))]", result);
+        Assert.Contains("[JsonSerializable(typeof(UserDto))]", result);
+        Assert.Contains("[JsonSerializable(typeof(ProductDto))]", result);
+        Assert.Contains("[JsonSerializable(typeof(OrderDto))]", result);
     }
 
     [Fact]
     public void GenerateJsonSerializableAttributes_ShouldRemoveDuplicates()
     {
-        var types = new[] { "string", "string", "int", "int" };
+        var types = new[] { "UserDto", "UserDto", "ProductDto", "ProductDto" };
 
         var result = RpcJsonContextGenerator.GenerateJsonSerializableAttributes(types);
 
@@ -520,12 +520,12 @@ public class MyClass
     [Fact]
     public void GenerateJsonSerializableAttributes_ShouldRemoveSystemPrefix()
     {
-        var types = new[] { "System.String", "System.Int32" };
+        var types = new[] { "System.Collections.Generic.List<UserDto>", "System.Threading.Tasks.Task<ProductDto>" };
 
         var result = RpcJsonContextGenerator.GenerateJsonSerializableAttributes(types);
 
-        Assert.Contains("[JsonSerializable(typeof(String))]", result);
-        Assert.Contains("[JsonSerializable(typeof(Int32))]", result);
+        Assert.Contains("[JsonSerializable(typeof(Collections.Generic.List<UserDto>))]", result);
+        Assert.Contains("[JsonSerializable(typeof(ProductDto))]", result);
         Assert.DoesNotContain("System.", result);
     }
 
@@ -542,14 +542,14 @@ public class MyClass
     [Fact]
     public void GenerateJsonSerializableAttributes_ShouldSortTypes()
     {
-        var types = new[] { "string", "int", "bool" };
+        var types = new[] { "ZebraDto", "YellowDto", "AppleDto" };
 
         var result = RpcJsonContextGenerator.GenerateJsonSerializableAttributes(types);
         var lines = result.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
-        Assert.Equal("[JsonSerializable(typeof(bool))]", lines[0]);
-        Assert.Equal("[JsonSerializable(typeof(int))]", lines[1]);
-        Assert.Equal("[JsonSerializable(typeof(string))]", lines[2]);
+        Assert.Equal("[JsonSerializable(typeof(AppleDto))]", lines[0]);
+        Assert.Equal("[JsonSerializable(typeof(YellowDto))]", lines[1]);
+        Assert.Equal("[JsonSerializable(typeof(ZebraDto))]", lines[2]);
     }
 
     #endregion GenerateJsonSerializableAttributes Tests
@@ -634,7 +634,7 @@ public class MyService
         var src = @"
 public class MyApi
 {
-    public Task<UserResponse> GetUser(int userId) { return null; }
+    public Task<UserResponse> GetUser(UserRequest userId) { return null; }
     public void UpdateUser(UserRequest request) { }
 }";
 
@@ -643,8 +643,8 @@ public class MyApi
         var output = RpcJsonContextGenerator.GenerateJsonSerializableAttributes(types);
 
         Assert.Contains("[JsonSerializable(typeof(UserResponse))]", output);
-        Assert.Contains("[JsonSerializable(typeof(int))]", output);
         Assert.Contains("[JsonSerializable(typeof(UserRequest))]", output);
+        Assert.DoesNotContain("[JsonSerializable(typeof(int))]", output);
     }
 
     #endregion Integration Tests

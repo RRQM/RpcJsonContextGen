@@ -203,15 +203,17 @@ public class RpcJsonContextGeneratorTests : IDisposable
         File.WriteAllText(testFile, @"
 public class TestService
 {
-    public Task<string> GetDataAsync(int id) { return null; }
-}");
+    public Task<UserDto> GetDataAsync(int id) { return null; }
+}
+
+public class UserDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
         Assert.Contains("[JsonSerializable(typeof(", result);
-        Assert.Contains("string", result);
-        Assert.Contains("int", result);
+        Assert.Contains("UserDto", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(int))", result);
 
         File.Delete(testFile);
     }
@@ -225,20 +227,24 @@ public class TestService
         File.WriteAllText(file1, @"
 public class Service1
 {
-    public string GetData() { return null; }
-}");
+    public DataDto GetData() { return null; }
+}
+
+public class DataDto { }");
 
         File.WriteAllText(file2, @"
 public class Service2
 {
-    public int GetCount() { return 0; }
-}");
+    public CountDto GetCount() { return null; }
+}
+
+public class CountDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([file1, file2]);
 
         Assert.NotNull(result);
-        Assert.Contains("int", result);
-        Assert.Contains("string", result);
+        Assert.Contains("DataDto", result);
+        Assert.Contains("CountDto", result);
 
         File.Delete(file1);
         File.Delete(file2);
@@ -251,17 +257,19 @@ public class Service2
         File.WriteAllText(testFile, @"
 public class Service1
 {
-    public string Method1() { return null; }
-    public string Method2() { return null; }
-    public string Method3() { return null; }
-}");
+    public UserDto Method1() { return null; }
+    public UserDto Method2() { return null; }
+    public UserDto Method3() { return null; }
+}
+
+public class UserDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
         var count = System.Text.RegularExpressions.Regex.Matches(
             result,
-            @"\[JsonSerializable\(typeof\(string\)\)\]").Count;
+            @"\[JsonSerializable\(typeof\(UserDto\)\)\]").Count;
         Assert.Equal(1, count);
 
         File.Delete(testFile);
@@ -357,14 +365,17 @@ public class GenericService
         File.WriteAllText(testFile, @"
 public class NullableService
 {
-    public string? GetData(int? id) { return null; }
-}");
+    public DataDto? GetData(NullableDto? id) { return null; }
+}
+
+public class DataDto { }
+public class NullableDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
-        Assert.Contains("string", result);
-        Assert.Contains("int", result);
+        Assert.Contains("DataDto", result);
+        Assert.Contains("NullableDto", result);
         Assert.DoesNotContain("?", result);
 
         File.Delete(testFile);
@@ -377,16 +388,20 @@ public class NullableService
         File.WriteAllText(testFile, @"
 public interface IDataService
 {
-    Task<bool> ValidateAsync(string input);
-    void Process(List<int> items);
-}");
+    Task<ValidationResult> ValidateAsync(InputData input);
+    void Process(List<ItemDto> items);
+}
+
+public class ValidationResult { }
+public class InputData { }
+public class ItemDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
-        Assert.Contains("bool", result);
-        Assert.Contains("string", result);
-        Assert.Contains("List<int>", result);
+        Assert.Contains("ValidationResult", result);
+        Assert.Contains("InputData", result);
+        Assert.Contains("List<ItemDto>", result);
 
         File.Delete(testFile);
     }
@@ -399,17 +414,22 @@ public interface IDataService
 public class AttributedService
 {
     [Obsolete]
-    public void OldMethod(string data) { }
+    public void OldMethod(DataDto data) { }
     
     [HttpPost]
-    public Task<bool> PostAsync([FromBody] string body) { return null; }
-}");
+    public Task<ResponseDto> PostAsync([FromBody] RequestDto body) { return null; }
+}
+
+public class DataDto { }
+public class RequestDto { }
+public class ResponseDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
-        Assert.Contains("string", result);
-        Assert.Contains("bool", result);
+        Assert.Contains("DataDto", result);
+        Assert.Contains("RequestDto", result);
+        Assert.Contains("ResponseDto", result);
 
         File.Delete(testFile);
     }
@@ -421,20 +441,24 @@ public class AttributedService
         File.WriteAllText(testFile, @"
 public class SortTest
 {
-    public void Method(string z, int y, bool x) { }
-}");
+    public void Method(ZebraDto z, YellowDto y, AppleDto x) { }
+}
+
+public class ZebraDto { }
+public class YellowDto { }
+public class AppleDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
         var lines = result.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
 
-        var boolIndex = Array.FindIndex(lines, l => l.Contains("bool"));
-        var intIndex = Array.FindIndex(lines, l => l.Contains("int"));
-        var stringIndex = Array.FindIndex(lines, l => l.Contains("string"));
+        var appleIndex = Array.FindIndex(lines, l => l.Contains("AppleDto"));
+        var yellowIndex = Array.FindIndex(lines, l => l.Contains("YellowDto"));
+        var zebraIndex = Array.FindIndex(lines, l => l.Contains("ZebraDto"));
 
-        Assert.True(boolIndex < intIndex);
-        Assert.True(intIndex < stringIndex);
+        Assert.True(appleIndex < yellowIndex);
+        Assert.True(yellowIndex < zebraIndex);
 
         File.Delete(testFile);
     }
@@ -455,23 +479,28 @@ public class SortTest
         File.WriteAllText(file1, @"
 public class Service1
 {
-    public Task<string> GetAsync() { return null; }
-}");
+    public Task<DataDto> GetAsync() { return null; }
+}
+
+public class DataDto { }");
 
         File.WriteAllText(file2, @"
 public interface IService2
 {
-    void Update(int id, bool flag);
-}");
+    void Update(UpdateRequest request, FlagDto flag);
+}
+
+public class UpdateRequest { }
+public class FlagDto { }");
 
         var files = RpcJsonContextGenerator.ExpandArgsToFiles([subDir]).ToList();
         var result = RpcJsonContextGenerator.GenerateFromFiles(files);
 
         Assert.Equal(2, files.Count);
         Assert.NotNull(result);
-        Assert.Contains("string", result);
-        Assert.Contains("int", result);
-        Assert.Contains("bool", result);
+        Assert.Contains("DataDto", result);
+        Assert.Contains("UpdateRequest", result);
+        Assert.Contains("FlagDto", result);
 
         File.Delete(file1);
         File.Delete(file2);
@@ -490,22 +519,26 @@ public interface IService2
         File.WriteAllText(file1, @"
 public class DirectClass
 {
-    public string Method1() { return null; }
-}");
+    public DataDto Method1() { return null; }
+}
+
+public class DataDto { }");
 
         File.WriteAllText(file2, @"
 public class InDirClass
 {
-    public int Method2() { return 0; }
-}");
+    public CountDto Method2() { return null; }
+}
+
+public class CountDto { }");
 
         var files = RpcJsonContextGenerator.ExpandArgsToFiles([file1, subDir]).ToList();
         var result = RpcJsonContextGenerator.GenerateFromFiles(files);
 
         Assert.Equal(2, files.Count);
         Assert.NotNull(result);
-        Assert.Contains("string", result);
-        Assert.Contains("int", result);
+        Assert.Contains("DataDto", result);
+        Assert.Contains("CountDto", result);
 
         File.Delete(file1);
         File.Delete(file2);
@@ -547,15 +580,18 @@ public class InDirClass
         File.WriteAllText(testFile, @"
 public class TaskService
 {
-    public Task<string> GetStringAsync() { return null; }
-    public Task<int> GetIntAsync() { return null; }
-}");
+    public Task<StringDto> GetStringAsync() { return null; }
+    public Task<IntDto> GetIntAsync() { return null; }
+}
+
+public class StringDto { }
+public class IntDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
-        Assert.Contains("[JsonSerializable(typeof(string))]", result);
-        Assert.Contains("[JsonSerializable(typeof(int))]", result);
+        Assert.Contains("[JsonSerializable(typeof(StringDto))]", result);
+        Assert.Contains("[JsonSerializable(typeof(IntDto))]", result);
         Assert.DoesNotContain("Task<", result);
 
         File.Delete(testFile);
@@ -568,15 +604,18 @@ public class TaskService
         File.WriteAllText(testFile, @"
 public class ValueTaskService
 {
-    public ValueTask<bool> ValidateAsync() { return default; }
-    public ValueTask<double> CalculateAsync() { return default; }
-}");
+    public ValueTask<ValidationResult> ValidateAsync() { return default; }
+    public ValueTask<CalculationResult> CalculateAsync() { return default; }
+}
+
+public class ValidationResult { }
+public class CalculationResult { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
-        Assert.Contains("[JsonSerializable(typeof(bool))]", result);
-        Assert.Contains("[JsonSerializable(typeof(double))]", result);
+        Assert.Contains("[JsonSerializable(typeof(ValidationResult))]", result);
+        Assert.Contains("[JsonSerializable(typeof(CalculationResult))]", result);
         Assert.DoesNotContain("ValueTask<", result);
 
         File.Delete(testFile);
@@ -633,18 +672,22 @@ public class GenericParamsService
         File.WriteAllText(testFile, @"
 public class MixedService
 {
-    public Task<string> GetAsync() { return null; }
-    public string GetSync() { return null; }
-    public void Process(List<int> items) { }
-    public ValueTask<bool> ValidateAsync() { return default; }
-}");
+    public Task<DataDto> GetAsync() { return null; }
+    public DataDto GetSync() { return null; }
+    public void Process(List<ItemDto> items) { }
+    public ValueTask<ValidationResult> ValidateAsync() { return default; }
+}
+
+public class DataDto { }
+public class ItemDto { }
+public class ValidationResult { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
-        Assert.Contains("[JsonSerializable(typeof(bool))]", result);
-        Assert.Contains("[JsonSerializable(typeof(List<int>))]", result);
-        Assert.Contains("[JsonSerializable(typeof(string))]", result);
+        Assert.Contains("[JsonSerializable(typeof(ValidationResult))]", result);
+        Assert.Contains("[JsonSerializable(typeof(List<ItemDto>))]", result);
+        Assert.Contains("[JsonSerializable(typeof(DataDto))]", result);
         Assert.DoesNotContain("Task<", result);
         Assert.DoesNotContain("ValueTask<", result);
 
@@ -658,15 +701,18 @@ public class MixedService
         File.WriteAllText(testFile, @"
 public class SystemPrefixService
 {
-    public System.Threading.Tasks.Task<System.String> GetAsync() { return null; }
-    public System.Threading.Tasks.ValueTask<System.Int32> GetIntAsync() { return default; }
-}");
+    public System.Threading.Tasks.Task<DataDto> GetAsync() { return null; }
+    public System.Threading.Tasks.ValueTask<CountDto> GetIntAsync() { return default; }
+}
+
+public class DataDto { }
+public class CountDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
-        Assert.Contains("[JsonSerializable(typeof(String))]", result);
-        Assert.Contains("[JsonSerializable(typeof(Int32))]", result);
+        Assert.Contains("[JsonSerializable(typeof(DataDto))]", result);
+        Assert.Contains("[JsonSerializable(typeof(CountDto))]", result);
         Assert.DoesNotContain("Task<", result);
         Assert.DoesNotContain("ValueTask<", result);
 
@@ -699,15 +745,18 @@ public class NestedTaskService
         File.WriteAllText(testFile, @"
 public class NullableTaskService
 {
-    public Task<int?> GetNullableIntAsync() { return null; }
-    public Task<string?> GetNullableStringAsync() { return null; }
-}");
+    public Task<NullableDto?> GetNullableIntAsync() { return null; }
+    public Task<DataDto?> GetNullableStringAsync() { return null; }
+}
+
+public class NullableDto { }
+public class DataDto { }");
 
         var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
 
         Assert.NotNull(result);
-        Assert.Contains("[JsonSerializable(typeof(int))]", result);
-        Assert.Contains("[JsonSerializable(typeof(string))]", result);
+        Assert.Contains("[JsonSerializable(typeof(NullableDto))]", result);
+        Assert.Contains("[JsonSerializable(typeof(DataDto))]", result);
         Assert.DoesNotContain("?", result);
         Assert.DoesNotContain("Task<", result);
 
@@ -715,7 +764,311 @@ public class NullableTaskService
     }
 
     #endregion
+
+    #region ExcludedTypes Tests
+
+    [Fact]
+    public void GenerateFromFiles_ShouldExcludeVoidType()
+    {
+        var testFile = Path.Combine(m_testDirectory, "VoidService.cs");
+        File.WriteAllText(testFile, @"
+public class VoidService
+{
+    public void Method1() { }
+    public void Method2() { }
+    public void Method3(DataDto data) { }
 }
+
+public class DataDto { }");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(void))]", result);
+        Assert.Contains("[JsonSerializable(typeof(DataDto))]", result);
+
+        File.Delete(testFile);
+    }
+
+    [Fact]
+    public void GenerateFromFiles_ShouldExcludeTaskWithoutGenericParameter()
+    {
+        var testFile = Path.Combine(m_testDirectory, "TaskOnlyService.cs");
+        File.WriteAllText(testFile, @"
+public class TaskOnlyService
+{
+    public Task ExecuteAsync() { return null; }
+    public ValueTask ProcessAsync() { return default; }
+    public Task<DataDto> GetAsync() { return null; }
+}
+
+public class DataDto { }");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(Task))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(ValueTask))]", result);
+        Assert.Contains("[JsonSerializable(typeof(DataDto))]", result);
+
+        File.Delete(testFile);
+    }
+
+  
+    [Fact]
+    public void GenerateFromFiles_ShouldIncludeCustomTypesButExcludeBasicTypes()
+    {
+        var testFile = Path.Combine(m_testDirectory, "MixedTypesService.cs");
+        File.WriteAllText(testFile, @"
+public class MixedTypesService
+{
+    public UserDto GetUser() { return null; }
+    public int GetUserId() { return 0; }
+    public string GetUserName() { return null; }
+    public bool IsValid() { return true; }
+}
+
+public class UserDto
+{
+    public int Id { get; set; }
+    public string Name { get; set; }
+}");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.Contains("[JsonSerializable(typeof(UserDto))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(int))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(string))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(bool))]", result);
+
+        File.Delete(testFile);
+    }
+
+    #endregion
+
+    #region CallContext Exclusion Tests
+
+    [Fact]
+    public void GenerateFromFiles_ShouldExcludeCallContextType()
+    {
+        var testFile = Path.Combine(m_testDirectory, "CallContextService.cs");
+        File.WriteAllText(testFile, @"
+public class CallContextService
+{
+    public void Method1(MyCallContext context) { }
+    public DataDto Method2(UserCallContext context) { return null; }
+}
+
+public class MyCallContext { }
+public class UserCallContext { }
+public class DataDto { }
+");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.DoesNotContain("MyCallContext", result);
+        Assert.DoesNotContain("UserCallContext", result);
+        Assert.Contains("[JsonSerializable(typeof(DataDto))]", result);
+
+        File.Delete(testFile);
+    }
+
+    [Fact]
+    public void GenerateFromFiles_ShouldExcludeCallContextWithNamespace()
+    {
+        var testFile = Path.Combine(m_testDirectory, "NamespacedCallContextService.cs");
+        File.WriteAllText(testFile, @"
+namespace MyApp.Services
+{
+    public class ServiceWithContext
+    {
+        public void Execute(MyApp.Models.ServiceCallContext context) { }
+        public UserDto GetUser(RequestCallContext context) { return null; }
+    }
+}
+
+namespace MyApp.Models
+{
+    public class ServiceCallContext { }
+    public class RequestCallContext { }
+    public class UserDto { }
+}");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.DoesNotContain("ServiceCallContext", result);
+        Assert.DoesNotContain("RequestCallContext", result);
+        Assert.Contains("[JsonSerializable(typeof(UserDto))]", result);
+
+        File.Delete(testFile);
+    }
+
+    [Fact]
+    public void GenerateFromFiles_ShouldExcludeGenericCallContext()
+    {
+        var testFile = Path.Combine(m_testDirectory, "GenericCallContextService.cs");
+        File.WriteAllText(testFile, @"
+public class GenericCallContextService
+{
+    public void Method1(MyCallContext<string> context) { }
+    public void Method2(UserCallContext<int, bool> context) { }
+    public UserDto GetUser() { return null; }
+}
+
+public class MyCallContext<T> { }
+public class UserCallContext<T1, T2> { }
+public class UserDto { }
+");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.DoesNotContain("MyCallContext", result);
+        Assert.DoesNotContain("UserCallContext", result);
+        Assert.Contains("[JsonSerializable(typeof(UserDto))]", result);
+
+        File.Delete(testFile);
+    }
+
+    [Fact]
+    public void GenerateFromFiles_ShouldNotExcludeTypeContainingCallContext()
+    {
+        var testFile = Path.Combine(m_testDirectory, "CallContextInNameService.cs");
+        File.WriteAllText(testFile, @"
+public class CallContextInNameService
+{
+    public void Method1(CallContextManager manager) { }
+    public void Method2(ServiceCallContextHandler handler) { }
+}
+
+public class CallContextManager { }
+public class ServiceCallContextHandler { }
+");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.Contains("[JsonSerializable(typeof(CallContextManager))]", result);
+        Assert.Contains("[JsonSerializable(typeof(ServiceCallContextHandler))]", result);
+
+        File.Delete(testFile);
+    }
+
+    [Fact]
+    public void GenerateFromFiles_ShouldExcludeCallContextAsReturnType()
+    {
+        var testFile = Path.Combine(m_testDirectory, "CallContextReturnService.cs");
+        File.WriteAllText(testFile, @"
+public class CallContextReturnService
+{
+    public MyCallContext CreateContext() { return null; }
+    public Task<UserCallContext> GetContextAsync() { return null; }
+    public DataDto GetData(RequestCallContext context) { return null; }
+}
+
+public class MyCallContext { }
+public class UserCallContext { }
+public class RequestCallContext { }
+public class DataDto { }
+");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.DoesNotContain("MyCallContext", result);
+        Assert.DoesNotContain("UserCallContext", result);
+        Assert.DoesNotContain("RequestCallContext", result);
+        Assert.Contains("[JsonSerializable(typeof(DataDto))]", result);
+
+        File.Delete(testFile);
+    }
+
+    [Fact]
+    public void GenerateFromFiles_ShouldHandleMixedCallContextAndNormalTypes()
+    {
+        var testFile = Path.Combine(m_testDirectory, "MixedCallContextService.cs");
+        File.WriteAllText(testFile, @"
+public class MixedCallContextService
+{
+    public UserDto GetUser(UserCallContext context) { return null; }
+    public ProductDto GetProduct(int id, RequestCallContext context) { return null; }
+    public void Update(UserDto user, UpdateCallContext context) { }
+}
+
+public class UserDto { }
+public class ProductDto { }
+public class UserCallContext { }
+public class RequestCallContext { }
+public class UpdateCallContext { }
+");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        Assert.Contains("[JsonSerializable(typeof(UserDto))]", result);
+        Assert.Contains("[JsonSerializable(typeof(ProductDto))]", result);
+        Assert.DoesNotContain("UserCallContext", result);
+        Assert.DoesNotContain("RequestCallContext", result);
+        Assert.DoesNotContain("UpdateCallContext", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(int))]", result);
+
+        File.Delete(testFile);
+    }
+
+    [Fact]
+    public void GenerateFromFiles_ShouldHandleComplexScenarioWithAllExclusions()
+    {
+        var testFile = Path.Combine(m_testDirectory, "ComplexExclusionService.cs");
+        File.WriteAllText(testFile, @"
+public class ComplexExclusionService
+{
+    public void VoidMethod() { }
+    public Task EmptyTaskMethod() { return null; }
+    public Task<UserDto> GetUserAsync(int userId, RequestCallContext context) { return null; }
+    public ValueTask<ProductDto> GetProductAsync(string productId) { return default; }
+    public string GetName() { return null; }
+    public DateTime GetDate() { return default; }
+    public bool IsValid(ValidationCallContext context) { return true; }
+    public CustomDto GetCustom() { return null; }
+}
+
+public class UserDto { }
+public class ProductDto { }
+public class CustomDto { }
+public class RequestCallContext { }
+public class ValidationCallContext { }
+");
+
+        var result = RpcJsonContextGenerator.GenerateFromFiles([testFile]);
+
+        Assert.NotNull(result);
+        
+        // 应该包含的类型
+        Assert.Contains("[JsonSerializable(typeof(UserDto))]", result);
+        Assert.Contains("[JsonSerializable(typeof(ProductDto))]", result);
+        Assert.Contains("[JsonSerializable(typeof(CustomDto))]", result);
+        
+        // 不应该包含的类型
+        Assert.DoesNotContain("[JsonSerializable(typeof(void))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(Task))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(int))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(string))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(DateTime))]", result);
+        Assert.DoesNotContain("[JsonSerializable(typeof(bool))]", result);
+        Assert.DoesNotContain("RequestCallContext", result);
+        Assert.DoesNotContain("ValidationCallContext", result);
+
+        File.Delete(testFile);
+    }
+
+    #endregion
+}
+
+
+
 
 
 
